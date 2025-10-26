@@ -186,96 +186,49 @@
   </div>
 
   <script>
-    (function(){
-      // Default/fallback group code (keeps existing behavior if no code is supplied)
-      const DEFAULT_GROUP_CODE = 'GDua6Q2BMHoHjgMudafBMI';
+  (function(){
+    // 🔹 Get the group ID from the URL (e.g., ?groupid=ABCD123)
+    const params = new URLSearchParams(window.location.search);
+    const groupCode = params.get('groupid') || 'DjzZhd60uaX6LiKCnV9oXE'; // fallback default if not provided
 
-      // Validate a possible code: allow letters, numbers, - and _, length reasonable for WhatsApp invite tokens
-      function isValidGroupCode(s) {
-        return typeof s === 'string' && /^[A-Za-z0-9_-]{6,50}$/.test(s);
+    // 🔹 Build WhatsApp URLs dynamically
+    const webUrl = 'https://chat.whatsapp.com/' + groupCode;
+    const intentUrl = 'intent://chat.whatsapp.com/' + groupCode + '#Intent;package=com.whatsapp;scheme=https;end';
+    const joinBtn = document.getElementById('joinBtn');
+
+    // 🔹 Update the group code text on the right panel
+    const codeEl = document.querySelector('.right div');
+    if (codeEl) codeEl.textContent = groupCode;
+
+    // 🔹 Device detection helpers
+    function isiOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    function isAndroid() {
+      return /Android/.test(navigator.userAgent);
+    }
+
+    // 🔹 Handle button click
+    joinBtn.addEventListener('click', function () {
+      if (isAndroid()) {
+        // Android → try intent first, then fallback
+        window.location.href = intentUrl;
+        setTimeout(function(){ window.open(webUrl, '_blank'); }, 1200);
+      } else if (isiOS()) {
+        // iOS → use https link (opens in app if installed)
+        window.location.href = webUrl;
+      } else {
+        // Desktop → open in new tab
+        window.open(webUrl, '_blank', 'noopener,noreferrer');
       }
+    });
 
-      // Attempt to extract a group code from multiple common locations:
-      // 1) query params (codegroup, group, code, g)
-      // 2) pathname segments like /codegroup=ABC123 or a trailing segment /ABC123
-      // 3) hash (#ABC123)
-      function getGroupCodeFromUrl() {
-        try {
-          const params = new URLSearchParams(window.location.search);
-          const keys = ['codegroup','group','code','g'];
-          for (const k of keys) {
-            if (params.has(k)) {
-              const v = params.get(k);
-              if (isValidGroupCode(v)) return v;
-            }
-          }
+    // 🔹 Keyboard accessibility
+    joinBtn.addEventListener('keyup', function(e){
+      if (e.key === 'Enter' || e.key === ' ') joinBtn.click();
+    });
+  })();
+</script>
 
-          // support URLs like example.com/codegroup=ABC123 or example.com/ABC123
-          const path = window.location.pathname || '';
-          let m = path.match(/codegroup=([^\/?#]+)/i);
-          if (m && isValidGroupCode(m[1])) return m[1];
-
-          // trailing path segment if it looks like a code
-          m = path.match(/\/([A-Za-z0-9_-]{6,50})\/?$/);
-          if (m && isValidGroupCode(m[1])) return m[1];
-
-          // hash fallback
-          const hash = window.location.hash ? window.location.hash.replace(/^#/, '') : '';
-          if (isValidGroupCode(hash)) return hash;
-
-          return null;
-        } catch (err) {
-          return null;
-        }
-      }
-
-      // Determine code and construct URLs
-      const extracted = getGroupCodeFromUrl();
-      const groupCode = (isValidGroupCode(extracted) ? extracted : DEFAULT_GROUP_CODE);
-      const webUrl = 'https://chat.whatsapp.com/' + groupCode;
-      const intentUrl = 'intent://chat.whatsapp.com/' + groupCode + '#Intent;package=com.whatsapp;scheme=https;end';
-
-      // Update displayed code in the UI
-      const codeEl = document.getElementById('groupCodeDisplay');
-      if (codeEl) codeEl.textContent = groupCode;
-
-      const joinBtn = document.getElementById('joinBtn');
-
-      function isiOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      }
-      function isAndroid() {
-        return /Android/.test(navigator.userAgent);
-      }
-
-      joinBtn.addEventListener('click', function (e) {
-        // Try to open the native app on Android via intent, on iOS use universal link (https)
-        if (isAndroid()) {
-          // For Android: try intent first, fallback to web after small delay
-          window.location.href = intentUrl;
-          // fallback to web after 1.2s if app not present
-          setTimeout(function(){ window.open(webUrl, '_blank'); }, 1200);
-        } else if (isiOS()) {
-          // iOS supports universal links (https) which open in app if installed
-          window.location.href = webUrl;
-        } else {
-          // Desktop or unknown: open in new tab
-          window.open(webUrl, '_blank', 'noopener,noreferrer');
-        }
-      });
-
-      // Allow Enter/Space to trigger button for accessibility
-      joinBtn.addEventListener('keyup', function(e){
-        if (e.key === 'Enter' || e.key === ' ') joinBtn.click();
-      });
-
-      // Optional: if an invalid-looking code was supplied, show a console warning (keeps UX clean)
-      const supplied = (new URL(window.location.href)).searchParams.get('codegroup') || (new URL(window.location.href)).searchParams.get('group') || (new URL(window.location.href)).searchParams.get('code') || (new URL(window.location.href)).searchParams.get('g');
-      if (supplied && !isValidGroupCode(supplied)) {
-        console.warn('Supplied group code looks invalid and was ignored:', supplied);
-      }
-
-    })();
-  </script>
 </body>
 </html>
