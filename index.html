@@ -160,15 +160,15 @@
         </div>
 
         <h1>انضم إلى مجموعتنا الآن</h1>
-        <p class="lead">اضغط الزر أدناه لفتح الدعوة مباشرة في تطبيق واتساب أو في المتصفح حسب جهازك. تم تصميم الصفحة لتعمل بشكل سلس على أجهزة آيفون وأندرويد.</p>
+        <p class="lead">اضغط الزر أدناه لفتح الدعوة مباشرة في تطبيق واتساب أو في المتصفح حسب جهازك. تم تصميم الصفحة لتعمل على الأجهزة المحمولة وسطح المكتب.</p>
 
         <div>
-          <button id="joinBtn" class="btn" aria-label="انضم إلى مجموعة واتساب" title="انضم إلى مجموعة واتساب">
+          <button id="joinBtn" class="btn" aria-label="انضم إلى مجموعة واتساب" title="انضم إلى مجموعة واتساب" type="button">
             <!-- simple whatsapp svg -->
             <svg class="svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path d="M21.7 19.3a11.9 11.9 0 10-3.4 3.4l2.5.5.4-2.8z" fill="#fff" opacity=".06"/>
-              <path d="M20.52 3.48A11.9 11.9 0 0012 0C5.373 0 .02 5.354.02 12 0 14.21.64 16.29 1.81 18.05L0 24l6.16-1.62A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12 0-2.99-1.06-5.74-2.96-7.52z" fill="#fff" opacity=".04"/>
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.473-.148-.673.15-.2.297-.773.967-.947 1.165-.174.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.476-.883-.788-1.48-1.761-1.65-2.059-.173-.298-.018-.459.13-.607.133-.132.297-.347.446-.52.15-.174.199-.298.298-.497.099-.198.05-.372-.025-.521-.075-.148-.673-1.62-.923-2.22-.243-.583-.49-.504-.673-.513l-.576-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487 0.71.306 1.262.489 1.693.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.007-1.412.248-.695.248-1.289.174-1.412-.074-.124-.273-.198-.57-.347z" fill="#fff"/>
+              <path d="M20.52 3.48A11.9 11.9 0 0012 0C5.373 0 .02 5.354.02 12 0 14.21.64 16.29 1.81 18.05L0 24l6.16-1.62A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12 0-2.99-1.06-5.74-2.96-7.52z" fill="#fff" opacity=".06"/>
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.473-.148-.673.15-.2.297-.773.967-.947 1.165-.174.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.476-.883-.788-1.48-1.41-1.654-1.708-.174-.297-.018-.458.13-.606.134-.132.297-.347.446-.52.149-.174.198-.298.298-.497.1-.198.05-.372-.025-.52-.075-.149-.673-1.62-.922-2.22-.244-.573-.492-.495-.673-.505l-.574-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.48 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487 0 0 .397.167.717.09.32-.074 1.01-.41 1.154-.807.149-.397.149-.74.105-.807-.044-.066-.198-.099-.446-.248z" fill="#fff"/>
             </svg>
             انضم للمجموعة الآن
           </button>
@@ -179,17 +179,66 @@
 
       <aside class="right" aria-hidden="true">
         <p><strong>رمز المجموعة</strong></p>
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--accent)">GDua6Q2BMHoHjgMudafBMI</div>
-        <p class="small">سيتم فتح الرابط مباشرة في تطبيق واتساب إذا كان مثبتًا. يعمل هذا أيضاً على الأجهزة المكتبية بفتح صفحة المجموعة في المتصفح.</p>
+        <div id="groupCodeDisplay" style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--accent)">GDua6Q2BMHoHjgMudafBMI</div>
+        <p class="small">سيتم فتح الرابط مباشرة في تطبيق واتساب إذا كان مثبتًا. يعمل هذا أيضاً على الأجهزة المكتبية بفتح واجهة الويب الخاصة بواتساب.</p>
       </aside>
     </div>
   </div>
 
   <script>
     (function(){
-      const groupCode = 'GDua6Q2BMHoHjgMudafBMI';
+      // Default/fallback group code (keeps existing behavior if no code is supplied)
+      const DEFAULT_GROUP_CODE = 'GDua6Q2BMHoHjgMudafBMI';
+
+      // Validate a possible code: allow letters, numbers, - and _, length reasonable for WhatsApp invite tokens
+      function isValidGroupCode(s) {
+        return typeof s === 'string' && /^[A-Za-z0-9_-]{6,50}$/.test(s);
+      }
+
+      // Attempt to extract a group code from multiple common locations:
+      // 1) query params (codegroup, group, code, g)
+      // 2) pathname segments like /codegroup=ABC123 or a trailing segment /ABC123
+      // 3) hash (#ABC123)
+      function getGroupCodeFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const keys = ['codegroup','group','code','g'];
+          for (const k of keys) {
+            if (params.has(k)) {
+              const v = params.get(k);
+              if (isValidGroupCode(v)) return v;
+            }
+          }
+
+          // support URLs like example.com/codegroup=ABC123 or example.com/ABC123
+          const path = window.location.pathname || '';
+          let m = path.match(/codegroup=([^\/?#]+)/i);
+          if (m && isValidGroupCode(m[1])) return m[1];
+
+          // trailing path segment if it looks like a code
+          m = path.match(/\/([A-Za-z0-9_-]{6,50})\/?$/);
+          if (m && isValidGroupCode(m[1])) return m[1];
+
+          // hash fallback
+          const hash = window.location.hash ? window.location.hash.replace(/^#/, '') : '';
+          if (isValidGroupCode(hash)) return hash;
+
+          return null;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      // Determine code and construct URLs
+      const extracted = getGroupCodeFromUrl();
+      const groupCode = (isValidGroupCode(extracted) ? extracted : DEFAULT_GROUP_CODE);
       const webUrl = 'https://chat.whatsapp.com/' + groupCode;
       const intentUrl = 'intent://chat.whatsapp.com/' + groupCode + '#Intent;package=com.whatsapp;scheme=https;end';
+
+      // Update displayed code in the UI
+      const codeEl = document.getElementById('groupCodeDisplay');
+      if (codeEl) codeEl.textContent = groupCode;
+
       const joinBtn = document.getElementById('joinBtn');
 
       function isiOS() {
@@ -203,7 +252,6 @@
         // Try to open the native app on Android via intent, on iOS use universal link (https)
         if (isAndroid()) {
           // For Android: try intent first, fallback to web after small delay
-          // opening intent URL will either open the app or be ignored.
           window.location.href = intentUrl;
           // fallback to web after 1.2s if app not present
           setTimeout(function(){ window.open(webUrl, '_blank'); }, 1200);
@@ -220,6 +268,14 @@
       joinBtn.addEventListener('keyup', function(e){
         if (e.key === 'Enter' || e.key === ' ') joinBtn.click();
       });
+
+      // Optional: if an invalid-looking code was supplied, show a console warning (keeps UX clean)
+      const supplied = (new URL(window.location.href)).searchParams.get('codegroup') || (new URL(window.location.href)).searchParams.get('group') || (new URL(window.location.href)).searchParams.get('code') || (new URL(window.location.href)).searchParams.get('g');
+      if (supplied && !isValidGroupCode(supplied)) {
+        console.warn('Supplied group code looks invalid and was ignored:', supplied);
+      }
+
     })();
   </script>
 </body>
+</html>
